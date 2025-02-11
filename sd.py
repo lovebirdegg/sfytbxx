@@ -2,8 +2,8 @@ import requests
 # import pandas as pd
 from bs4 import BeautifulSoup
 import time
-import json
 import notify
+import json
 import os  # 用于导入系统变量
 from datetime import date
 push_config = {
@@ -57,6 +57,62 @@ def dingding_bot(title: str, content: str) -> None:
     """
     使用 钉钉机器人 推送消息。
     """
+
+    url = 'https://oapi.dingtalk.com/robot/send?access_token=b07e0cdc205d61349c9e5bad7e108b67a90fb0b4fa417f5f3bb33c637a9d57dc'
+    headers = {"Content-Type": "application/json;charset=utf-8"}
+    data = {
+        "msgtype": "markdown", 
+        "markdown": {
+            "title": f"{title}",
+            "text":f"{content}"}
+            }
+    print(data)
+    response = requests.post(url=url, data=json.dumps(data), headers=headers, timeout=15).json()
+
+    if not response["errcode"]:
+        print("钉钉机器人 推送成功！")
+    else:
+        print("钉钉机器人 推送失败！",response)
+
+def convert_table_to_markdown(table_data):
+    """
+    Convert a 2D list to Markdown table format.
+    :param table_data: List of lists representing rows of the table.
+    :return: Markdown formatted table string.
+    """
+    if not table_data:
+        return ""
+    
+    # Generate header and separator
+    header = " | ".join(table_data[0])
+    separator = " | ".join(["---"] * len(table_data[0]))
+    
+    # Generate table rows
+    rows = [f" | ".join(row) for row in table_data[1:]]
+    
+    # Combine all parts
+    markdown_table = "\n".join(["| " + header + " |", "| " + separator + " |"] + ["| " + row + " |" for row in rows])
+    
+    return markdown_table
+
+def dingding_bot(title: str, content: str) -> None:
+    """
+    使用 钉钉机器人 推送消息。
+    """
+    # if not push_config.get("DD_BOT_SECRET") or not push_config.get("DD_BOT_TOKEN"):
+    #     print("钉钉机器人 服务的 DD_BOT_SECRET 或者 DD_BOT_TOKEN 未设置!!\n取消推送")
+    #     return
+    # print("钉钉机器人 服务启动")
+
+    # timestamp = str(round(time.time() * 1000))
+    # secret_enc = push_config.get("DD_BOT_SECRET").encode("utf-8")
+    # string_to_sign = "{}\n{}".format(timestamp, push_config.get("DD_BOT_SECRET"))
+    # string_to_sign_enc = string_to_sign.encode("utf-8")
+    # hmac_code = hmac.new(
+    #     secret_enc, string_to_sign_enc, digestmod=hashlib.sha256
+    # ).digest()
+    # sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
+    # url = f'https://oapi.dingtalk.com/robot/send?access_token={push_config.get("DD_BOT_TOKEN")}&timestamp={timestamp}&sign={sign}'
 
     url = 'https://oapi.dingtalk.com/robot/send?access_token=b07e0cdc205d61349c9e5bad7e108b67a90fb0b4fa417f5f3bb33c637a9d57dc'
     headers = {"Content-Type": "application/json;charset=utf-8"}
@@ -150,11 +206,11 @@ def fetch_procurement_info():
         if(len(results) > 1):
             markdown_table = convert_table_to_markdown(results)
             dingding_bot("招标信息",markdown_table)
-        bark("sfy_sucess","运行成功")
+        notify.bark("sfy_sucess","运行成功")
         print("运行成功")
 
     except Exception as e:
-        bark("sfy_error",f"抓取失败: {str(e)}")
+        notify.bark("sfy_error",f"抓取失败: {str(e)}")
         print(f"抓取失败: {str(e)}")
 
 if __name__ == "__main__":
