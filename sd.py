@@ -1,9 +1,53 @@
 import requests
-import pandas as pd
+# import pandas as pd
 from bs4 import BeautifulSoup
 import time
-
+import notify
+import json
+import os  # 用于导入系统变量
 from datetime import date
+
+def dingding_bot(title: str, content: str) -> None:
+    """
+    使用 钉钉机器人 推送消息。
+    """
+
+    url = 'https://oapi.dingtalk.com/robot/send?access_token=b07e0cdc205d61349c9e5bad7e108b67a90fb0b4fa417f5f3bb33c637a9d57dc'
+    headers = {"Content-Type": "application/json;charset=utf-8"}
+    data = {
+        "msgtype": "markdown", 
+        "markdown": {
+            "title": f"{title}",
+            "text":f"{content}"}
+            }
+    print(data)
+    response = requests.post(url=url, data=json.dumps(data), headers=headers, timeout=15).json()
+
+    if not response["errcode"]:
+        print("钉钉机器人 推送成功！")
+    else:
+        print("钉钉机器人 推送失败！",response)
+
+def convert_table_to_markdown(table_data):
+    """
+    Convert a 2D list to Markdown table format.
+    :param table_data: List of lists representing rows of the table.
+    :return: Markdown formatted table string.
+    """
+    if not table_data:
+        return ""
+    
+    # Generate header and separator
+    header = " | ".join(table_data[0])
+    separator = " | ".join(["---"] * len(table_data[0]))
+    
+    # Generate table rows
+    rows = [f" | ".join(row) for row in table_data[1:]]
+    
+    # Combine all parts
+    markdown_table = "\n".join(["| " + header + " |", "| " + separator + " |"] + ["| " + row + " |" for row in rows])
+    
+    return markdown_table
 
 
 def fetch_procurement_info():
@@ -14,15 +58,23 @@ def fetch_procurement_info():
     base_url = 'http://sdgp.sdcz.gov.cn/sdgp2017/site/listnew.jsp'
     
     # 存储结果的列表
-    results = []
+    results = [["标题","链接"]]
     # 获取当前日期（不包含时间）
     today = date.today()
     # 格式化日期
     formatted_date = today.strftime("%Y-%m-%d") # 例如："2023-04-
     # 可能需要处理分页，示例先获取第一页
     # formatted_date ="2024-12-25"
+
+    unit_name     = ''
+    if 'UNIT_NAME' in os.environ:  # 判断 JD_COOKIE是否存在于环境变量
+        unit_name = os.environ['UNIT_NAME']# 读取系统变量 以 & 分割变量
+    else:  # 判断分支
+        logger.info("未添加JD_COOKIE变量")  # 标准日志输出
+        sys.exit(0)  # 脚本退出
+
     params = {"subject":"",
-    "unitname":"济南市妇幼保健院",
+    "unitname":unit_name,
     "pdate":formatted_date,
     "colcode":"2504",
     "curpage":1,
@@ -43,19 +95,20 @@ def fetch_procurement_info():
 
         for item in items:
             title = item.select_one('.title').text.strip()
-            link = item.select_one('a')['href']
-            
-            results.append({
-                '标题': title,
-                '链接': link
-            })
+            link = 'http://sdgp.sdcz.gov.cn'+item.select_one('a')['href']
+            results.append([title,link])
 
         # 将结果转为DataFrame并保存
-        df = pd.DataFrame(results)
-        df.to_excel('采购信息.xlsx', index=False)
-        print("数据已保存为 采购信息.xlsx")
+        # df = pd.DataFrame(results)
+        # df.to_excel('采购信息.xlsx', index=False)
+        if(len(results) > 1):
+            markdown_table = convert_table_to_markdown(results)
+            dingding_bot("招标信息",markdown_table)
+        notify.bark("sfy_sucess","运行成功")
+        print("运行成功")
 
     except Exception as e:
+        notify.bark("sfy_error",f"抓取失败: {str(e)}")
         print(f"抓取失败: {str(e)}")
 
 if __name__ == "__main__":
