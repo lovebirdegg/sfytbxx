@@ -2,8 +2,8 @@ import requests
 # import pandas as pd
 from bs4 import BeautifulSoup
 import time
-import notify
 import json
+import notify
 import os  # 用于导入系统变量
 from datetime import date
 
