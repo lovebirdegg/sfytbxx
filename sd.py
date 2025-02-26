@@ -105,7 +105,7 @@ def fetch_procurement_info():
     base_url = 'http://sdgp.sdcz.gov.cn/sdgp2017/site/listnew.jsp'
     
     # 存储结果的列表
-    results = [["标题","链接"]]
+    results = [["名称","概况","金额","时间","链接"]]
     # 获取当前日期（不包含时间）
     today = datetime.date.today()
     one_day = datetime.timedelta(days=1)
@@ -146,7 +146,22 @@ def fetch_procurement_info():
         for item in items:
             title = item.select_one('.title').text.strip()
             link = 'http://sdgp.sdcz.gov.cn'+item.select_one('a')['href']
-            results.append([title,link])
+
+            time.sleep(2)  # 礼貌性延迟
+
+            response_detail = requests.get(link, headers=headers)
+            response_detail.raise_for_status()
+            soup_detail = BeautifulSoup(response_detail.text, 'html.parser')
+            
+            items_detail = soup_detail.find_all('table')
+
+
+            # print(len(items_detail))
+            tds = items_detail[1].find_all('td')
+            #print(tds[8].text.strip())
+            #title = item.select_one('.title').text.strip()
+
+            results.append([tds[8].text.strip(),tds[9].text.strip(),tds[10].text.strip(),tds[12].text.strip(),link])
 
         # 将结果转为DataFrame并保存
         # df = pd.DataFrame(results)
@@ -154,7 +169,7 @@ def fetch_procurement_info():
         if(len(results) > 1):
             markdown_table = convert_table_to_markdown(results)
             dingding_bot("招标信息",markdown_table)
-        bark("sfy_sucess",formatted_date+"["+str(len(results))+"]")
+        bark("市妇幼需求数：",formatted_date+"【"+str(len(results)-1)+"】")
         print("运行成功")
 
     except Exception as e:
