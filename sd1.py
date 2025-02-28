@@ -114,7 +114,7 @@ def fetch_procurement_info():
     # 格式化日期
     formatted_date = previous_date.strftime("%Y-%m-%d") # 例如："2023-04-
     # 可能需要处理分页，示例先获取第一页
-    # formatted_date ="2025-02-18"
+    # formatted_date ="2025-02-25"
 
     unit_name     = ''
     if 'UNIT_NAME' in os.environ:  # 判断 JD_COOKIE是否存在于环境变量
@@ -130,7 +130,7 @@ def fetch_procurement_info():
             "unitname":  unit_name,
             "projectname": "",
             "projectcode": "",
-            "colcode": 0303,
+            "colcode": "0303",
             "curpage": 1,
             "grade": "city",
             "region": "",
@@ -146,12 +146,12 @@ def fetch_procurement_info():
 
         # 根据实际网页结构解析数据，这里需要自行调整
         items = soup.select('.news_list2 > li')  # 假设列表项的CSS选择器
-
+        print(items)
         for item in items:
             title = item.select_one('.title').text.strip()
             link = 'http://sdgp.sdcz.gov.cn'+item.select_one('a')['href']
 
-            results.append(title,link])
+            results.append([title,link])
         if(len(results) > 1):
             markdown_table = convert_table_to_markdown(results)
             dingding_bot("招标信息",markdown_table)
